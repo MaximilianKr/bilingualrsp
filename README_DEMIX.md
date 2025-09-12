@@ -39,6 +39,19 @@ This writes a CSV summarizing header relations and used relnames per split and s
 - German label normalization is defined in `dmrst_parser/src/corpus/relation_set.py:germanMixed_labels`, extending `germanPcc_labels` with observed APA/PARADISE variants (e.g., `sameunit` → `same-unit`, `e-elaboration` → `entity-elaboration`, suffix-stripped `evaluation-n` → `evaluation`).
 - Training uses the RST-DT coarse label table with nuclearity (`RelationTableRSTDT`), via a class-collapsing dictionary (`rel2class`).
 
+### German Label Normalization (summary)
+- sameunit → same-unit
+- e-elaboration → entity-elaboration
+- manner-means → means
+- evaluation-n / evaluation-s → evaluation
+- reason-n → reason
+- solutionhood-n → solutionhood
+- restatement-mn → restatement
+- unconditional → condition
+- unstated-relation → elaboration
+- attribution → attribution (explicit)
+- same-unit → same-unit (explicit)
+
 ## Preparing Data (RS3 → *.lisp/*.edus → *.pkl)
 
 Build the DataManager cache for DE-MIX (creates `data/de_mix_prepared/*.lisp`, `*.edus`, and `*.pkl`):
@@ -84,6 +97,18 @@ Notes:
 - Adjust `--transformer_name`/`--emb_size` for a smaller LM (e.g., `xlm-roberta-base`) to reduce compute.
 - Tip: for xlm-roberta-large, freezing first ~20 layers and lowering LR (e.g., 5e-5) often stabilizes early epochs.
 
+Long sequences and windowing:
+- You may see a tokenizer warning about sequences >512 subwords; the model applies sliding windows internally (see window_size/window_padding in configs) to handle long docs.
+
+### German optional features
+- Sentence boundaries for the segmenter (optional):
+  - Only used if sentence boundaries are enabled in the segmenter config. Trainer will use spaCy to split sentences.
+  - For German, set `--lang de` and install spaCy German: `python -m spacy download de_core_news_lg`.
+  - Note: enabling sentence boundaries requires toggling the segmenter option in the config; leave it off unless experimenting with segmentation hints.
+- LUKE/MLUKE entity spans (optional):
+  - If you switch to a LUKE model (`studio-ousia/mluke-*`), Trainer extracts entity spans with spaCy.
+  - For German, set `--lang de` and install spaCy German as above. This can improve performance in some setups but adds compute.
+
 ## Inference
 
 Given a trained run in `saves/<run_name>/` containing `config.json` and `best_weights.pt`, load and run:
@@ -119,3 +144,9 @@ Notes:
 - emb_size is auto-set for common variants: 768 for xlm-roberta-base; 1024 for xlm-roberta-large. You can still override via --emb_size.
 - `--model_type '+tony'` enables the ToNy segmenter (LSTM-CRF), often a strong baseline.
 - Adjust `--transformer_name`/`--emb_size` for a smaller LM (e.g., `xlm-roberta-base`) to reduce compute.
+
+## Troubleshooting
+- ModuleNotFoundError when launching training: fixed by launching trainer as a module (handled by multiple_runs). Ensure you call multiple_runs.py, not trainer.py directly.
+- RuntimeError LayerNorm shape mismatch: pass matching `--emb_size` for your LM (base=768, large=1024) or rely on auto-selection.
+- Unstable training with xlm-roberta-large: use `--freeze_first_n 20` and a lower `--lr` (e.g., 5e-5).
+- Unknown label during prep: re-run `utils/collect_rs3_relations.py`, extend `germanMixed_labels`, and rebuild the cache.
