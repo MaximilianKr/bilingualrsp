@@ -7,5 +7,9 @@ venv/
 **/.cache
 *.pyc
 .env
-dmrst_parser/keys.py
 data/
+saves/
+wandb/
+dmrst_parser/keys.py
+log.txt
+project_state.md
