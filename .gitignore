@@ -7,5 +7,5 @@ venv/
 **/.cache
 *.pyc
 .env
-keys.py
+dmrst_parser/keys.py
 data/
