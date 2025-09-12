@@ -374,6 +374,35 @@ germanPcc_labels = {
     u'unless': u'unless'
 }
 
+# Extended German mixed-corpus labels mapping.
+# Starts from germanPcc_labels and adds normalizations observed in APA/PARADISE.
+germanMixed_labels = {
+    # Base: include PCC labels
+    **germanPcc_labels,
+
+    # Normalizations across corpora
+    u'sameunit': u'same-unit',
+    u'e-elaboration': u'entity-elaboration',  # redundancy to be explicit
+    u'manner-means': u'means',
+
+    # Suffix-stripped nuclearity variants
+    u'evaluation-n': u'evaluation',
+    u'evaluation-s': u'evaluation',
+    u'reason-n': u'reason',
+    u'solutionhood-n': u'solutionhood',
+    u'restatement-mn': u'restatement',
+
+    # Other rarer labels
+    u'unconditional': u'condition',
+    u'unless': u'unless',  # keep explicit
+    u'unstated-relation': u'elaboration',
+    u'question': u'question',  # handled downstream to Topic-Comment where applicable
+
+    # Missing from PCC base but present in DE-MIX
+    u'attribution': u'attribution',
+    u'same-unit': u'same-unit',
+}
+
 spanish_labels = {
     u'alternativa': u'alternative',
     u'antítesis': u'antithesis',

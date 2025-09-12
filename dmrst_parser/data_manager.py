@@ -50,6 +50,8 @@ class DataManager:
 
         elif corpus == 'RuRSTB':
             self._init_rurstb_corpus()
+        elif corpus == 'DE-MIX':
+            self._init_demix_corpus()
 
     def _init_gum_corpus(self, cross_validation, nfolds):
         self.input_path = 'data/gum_rs3'
@@ -192,6 +194,82 @@ class DataManager:
             'background_ns': 'elaboration_ns',
         }
 
+    def _init_demix_corpus(self):
+        # German mixed RS3 (PCC, APA-RST, PARADISE) with fixed splits
+        self.input_path = 'data/de_mix_rs3'
+        self.output_path = Path('data/de_mix_prepared')
+        self.output_path.mkdir(parents=True, exist_ok=True)
+        self.cross_validation = False
+        self.corpus = {'train': [], 'dev': [], 'test': []}
+
+        # Read split lists; accept entries with or without split prefixes
+        def _read_list(filename):
+            items = []
+            try:
+                with open(filename, 'r', encoding='utf-8') as f:
+                    for line in f:
+                        name = line.strip()
+                        if not name:
+                            continue
+                        # Strip optional split prefix and extension
+                        name = name.replace('\\', '/')
+                        parts = name.split('/')
+                        stem = parts[-1]
+                        stem = stem[:-4] if stem.endswith('.rs3') else stem
+                        items.append(stem)
+            except FileNotFoundError:
+                print('Split list not found:', filename)
+            return items
+
+        self.corpus['train'] = _read_list('data/de_mix_file_lists/train.txt')
+        self.corpus['dev'] = _read_list('data/de_mix_file_lists/dev.txt')
+        self.corpus['test'] = _read_list('data/de_mix_file_lists/test.txt')
+
+        # Reuse RST-DT coarse label table and mapping strategy
+        class2rel = {
+            'Attribution': ['attribution', 'attribution-e', 'attribution-n', 'attribution-negative'],
+            'Background': ['background', 'background-e', 'circumstance', 'circumstance-e', 'preparation'],
+            'Cause': ['cause', 'cause-result', 'result', 'result-e', 'consequence', 'consequence-n-e',
+                      'consequence-n', 'consequence-s-e', 'consequence-s', 'reason'],
+            'Comparison': ['comparison', 'comparison-e', 'preference', 'preference-e', 'analogy', 'analogy-e',
+                           'proportion'],
+            'Condition': ['condition', 'condition-e', 'hypothetical', 'contingency', 'otherwise', 'unconditional',
+                          'unless'],
+            'Contrast': ['contrast', 'concession', 'concession-e', 'antithesis', 'antithesis-e'],
+            'Elaboration': ['elaboration-additional', 'elaboration-additional-e', 'elaboration-general-specific-e',
+                            'elaboration-general-specific', 'elaboration-part-whole', 'elaboration-part-whole-e',
+                            'elaboration-process-step', 'elaboration-process-step-e',
+                            'elaboration-object-attribute-e', 'elaboration-object-attribute',
+                            'elaboration-set-member', 'elaboration-set-member-e', 'example', 'example-e',
+                            'definition', 'definition-e', 'e-elaboration', 'entity-elaboration', 'unstated-relation'],
+            'Enablement': ['purpose', 'purpose-e', 'enablement', 'enablement-e'],
+            'Evaluation': ['evaluation', 'evaluation-n', 'evaluation-s', 'interpretation', 'interpretation-n',
+                           'interpretation-s', 'conclusion', 'comment', 'comment-e', 'comment-topic'],
+            'Explanation': ['evidence', 'evidence-e', 'explanation-argumentative', 'explanation-argumentative-e',
+                            'justify', 'motivation'],
+            'Joint': ['joint', 'list', 'disjunction', 'conjunction', 'same-unit', 'sameunit', 'sequence'],
+            'Manner-Means': ['means', 'manner', 'manner-means'],
+            'Temporal': ['inverted-sequence', 'temporal-after', 'temporal-before', 'temporal-same-time'],
+            'Textual-organization': ['textual-organization', 'textualorganization'],
+            'Topic-Change': ['topic-drift', 'topic-shift'],
+            'Topic-Comment': ['question-answer', 'comment-topic', 'rhetorical-question', 'question',
+                              'problem-solution', 'solutionhood', 'solutionhood-n', 'solution'],
+            'Summary': ['restatement', 'restatement-mn', 'summary', 'reformulation']
+        }
+
+        self.rel2class = {}
+        for cl in class2rel:
+            self.rel2class[cl.lower()] = cl
+            for rel in class2rel[cl]:
+                self.rel2class[rel] = cl
+
+        self.relation_table = RelationTableRSTDT
+        self.relation_dic = {word.lower(): i for i, word in enumerate(RelationTableRSTDT)}
+        self.relation_fixer = {
+            # Normalize tricky nuclearity suffix signals if they leak through
+            'sameunit_nn': 'same-unit_nn',
+        }
+
     def from_rs3(self):
         # Collect all *.edus, *.lisp in the same directory
         self.prepare_lisp_format()
@@ -251,6 +329,15 @@ class DataManager:
                 except Exception as e:
                     print(rs3_file)
                     raise e
+        elif self.corpus_name == 'DE-MIX':
+            for dirpath, _, filenames in os.walk(self.input_path):
+                for fn in sorted(filenames):
+                    if fn.endswith('.rs3') and not fn.startswith('.'):
+                        try:
+                            self.convert_doc(filename=fn, input_dir=dirpath, output_dir=self.output_path)
+                        except Exception as e:
+                            print(os.path.join(dirpath, fn))
+                            raise e
 
     def prepare_parser_format(self):
         files = list(self.output_path.glob('*.edus'))
@@ -520,7 +607,7 @@ class DataManager:
                 if self.corpus_name == 'GUM':
                     if coarse and relation != 'same-unit':
                         relation = relation.split('-')[0]
-                elif self.corpus_name in ['RST-DT', 'RuRSTB']:
+                elif self.corpus_name in ['RST-DT', 'RuRSTB', 'DE-MIX']:
                     relation = self.rel2class.get(relation.lower())
 
                 #   Relation:
@@ -566,6 +653,9 @@ class DataManager:
             as *.edus and *.lisp files ready for processing. """
         rs3 = Rs3Document(os.path.join(input_dir, filename))
         rs3.read()
+        # Apply German mixed-corpus normalization if applicable
+        if self.corpus_name == 'DE-MIX':
+            rs3.mapRelation('germanMixed_labels')
         rs3.writeEdu(output_dir)
         out_ext = '.lisp'
         rs3.writeTree(output_dir, out_ext)
