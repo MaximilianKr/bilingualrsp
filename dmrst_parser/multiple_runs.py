@@ -38,6 +38,7 @@ class MultipleRunnerGeneral:
                  n_runs: int = 5,
                  save_path: str = 'saves/',
                  epochs: int = 100,
+                 lr: float = 1e-4,
                  ):
         """
         :param corpus: (str)  - 'GUM' or 'RST-DT'
@@ -61,6 +62,7 @@ class MultipleRunnerGeneral:
         self.n_runs = n_runs
         self.save_path = save_path
         self.epochs = epochs
+        self.lr = lr
 
     def _general_parameters(self):
         # Auto-set embedding size to match common XLM-R variants if user didn't change default
@@ -88,7 +90,7 @@ class MultipleRunnerGeneral:
             'dwa_bs': 12,  # Batch size for DWA computation
             'grad_clipping_value': 10.0,
             'combine_batches': 'false',  # [Optional] Combine batches w/smallest trees (for normalization when bs=1)
-            'lr': 0.0001,
+            'lr': self.lr,
             'cuda_device': self.cuda_device,
             'save_path': self.save_path,
             'epochs': self.epochs,
