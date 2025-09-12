@@ -165,6 +165,9 @@ class Trainer:
             elif self.data_lang == 'ru':
                 self._spacy = spacy.load("ru_core_news_lg")  # python -m spacy download ru_core_news_lg
 
+            elif self.data_lang == 'de':
+                self._spacy = spacy.load("de_core_news_lg")  # python -m spacy download de_core_news_lg
+
         self._set_random_seeds()
         self._load_data()
         self._setup_model()
@@ -318,6 +321,11 @@ class Trainer:
                 sent_breaks_chr.append(sent.stop - 1)
 
         elif self.data_lang == 'en':
+            doc = self._spacy(text)
+            for sent in doc.sents:
+                sent_breaks_chr.append(sent.end_char - 1)
+
+        elif self.data_lang == 'de':
             doc = self._spacy(text)
             for sent in doc.sents:
                 sent_breaks_chr.append(sent.end_char - 1)
