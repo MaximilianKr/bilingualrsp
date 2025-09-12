@@ -67,14 +67,14 @@ Quick start variants:
 ```
 python dmrst_parser/multiple_runs.py \
   --corpus DE-MIX --lang en --model_type default \
-  --transformer_name xlm-roberta-base --epochs 2 \
+  --transformer_name xlm-roberta-base --epochs 2 --n_runs 1 \
   --cuda_device 0 train
 ```
 - Large model (original default):
 ```
 python dmrst_parser/multiple_runs.py \
   --corpus DE-MIX --lang en --model_type default \
-  --transformer_name xlm-roberta-large --epochs 2 \
+  --transformer_name xlm-roberta-large --epochs 2 --n_runs 1 --freeze_first_n 20 --lr 5e-5 \
   --cuda_device 0 train
 ```
 
@@ -82,6 +82,7 @@ Notes:
 - emb_size is auto-set for common variants: 768 for xlm-roberta-base; 1024 for xlm-roberta-large. You can still override via --emb_size.
 - `--model_type '+tony'` enables the ToNy segmenter (LSTM-CRF), often a strong baseline.
 - Adjust `--transformer_name`/`--emb_size` for a smaller LM (e.g., `xlm-roberta-base`) to reduce compute.
+- Tip: for xlm-roberta-large, freezing first ~20 layers and lowering LR (e.g., 5e-5) often stabilizes early epochs.
 
 ## Inference
 
