@@ -7,3 +7,4 @@ venv/
 **/.cache
 *.pyc
 .env
+keys.py
