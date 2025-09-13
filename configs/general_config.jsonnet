@@ -33,6 +33,7 @@ local use_discriminator = std.extVar("use_discriminator");
 local use_log_crf = std.extVar("use_log_crf");
 local window_size = std.extVar("window_size");
 local window_padding = std.extVar("window_padding");
+local use_amp = std.extVar("use_amp");
 
 {
     "data": {
@@ -75,7 +76,7 @@ local window_padding = std.extVar("window_padding");
             "lr": lr,
             "seed": seed,
             "epochs": epochs,
-            "use_amp": false,
+            "use_amp": use_amp,
             "lr_decay": 0.95,
             "patience": 7,
             "project": "rurst",

@@ -39,6 +39,7 @@ class MultipleRunnerGeneral:
                  save_path: str = 'saves/',
                  epochs: int = 100,
                  lr: float = 1e-4,
+                 use_amp: bool = False,
                  ):
         """
         :param corpus: (str)  - 'GUM' or 'RST-DT'
@@ -63,6 +64,7 @@ class MultipleRunnerGeneral:
         self.save_path = save_path
         self.epochs = epochs
         self.lr = lr
+        self.use_amp = use_amp
 
     def _general_parameters(self):
         # Auto-set embedding size to match common XLM-R variants if user didn't change default
@@ -94,6 +96,7 @@ class MultipleRunnerGeneral:
             'cuda_device': self.cuda_device,
             'save_path': self.save_path,
             'epochs': self.epochs,
+            'use_amp': 'true' if self.use_amp else 'false',
         }
 
         if self.corpus == 'RST-DT':
