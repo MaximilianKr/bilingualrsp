@@ -137,6 +137,14 @@ pred = Predictor('saves/<run_name>', cuda_device=0)
 #     logits = pred.model(...)
 ```
 
+Segmentation from plain text (utility):
+- Use `utils/segment_texts.py` to turn `.txt` into `.edus.txt` with predicted EDU boundaries.
+```
+python utils/segment_texts.py --model_dir saves/<run_name> \
+  --inputs path/to/texts/*.txt --out_dir out_edus --cuda_device 0
+```
+Each input file produces `out_edus/<name>.edus.txt` with one EDU per line.
+
 ## Regression Checks
 
 - After changes, re-run RuRSTB preparation to ensure nothing breaks existing flows:
