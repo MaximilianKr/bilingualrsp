@@ -109,6 +109,19 @@ Long sequences and windowing:
   - If you switch to a LUKE model (`studio-ousia/mluke-*`), Trainer extracts entity spans with spaCy.
   - For German, set `--lang de` and install spaCy German as above. This can improve performance in some setups but adds compute.
 
+### Mixed Precision (AMP) — optional
+- Enable AMP to reduce VRAM and sometimes improve throughput:
+  - Add `--use_amp 1` to the training command.
+  - Example (large, short run):
+```
+python dmrst_parser/multiple_runs.py \
+  --corpus DE-MIX --lang en --model_type default \
+  --transformer_name xlm-roberta-large --epochs 8 --n_runs 1 \
+  --freeze_first_n 20 --lr 1e-4 --use_amp 1 --cuda_device 0 train
+```
+- Accuracy impact is typically negligible; early-epoch differences can occur. If AMP appears unstable, try a slightly lower LR or disable AMP.
+- For details and rationale, see `docs/training_freezing_and_amp.md`.
+
 ## Inference
 
 Given a trained run in `saves/<run_name>/` containing `config.json` and `best_weights.pt`, load and run:
@@ -150,3 +163,4 @@ Notes:
 - RuntimeError LayerNorm shape mismatch: pass matching `--emb_size` for your LM (base=768, large=1024) or rely on auto-selection.
 - Unstable training with xlm-roberta-large: use `--freeze_first_n 20` and a lower `--lr` (e.g., 5e-5).
 - Unknown label during prep: re-run `utils/collect_rs3_relations.py`, extend `germanMixed_labels`, and rebuild the cache.
+- Tokenizer warning about sequences >512 subwords is expected; the model applies a sliding window (window_size/window_padding) at inference/training time.
