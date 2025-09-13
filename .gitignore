@@ -1,0 +1,15 @@
+venv/
+**/.DS_Store
+**/.idea
+**/.pytest_cache
+**/__pycache__
+**/.ipynb_checkpoints
+**/.cache
+*.pyc
+.env
+data/
+saves/
+wandb/
+dmrst_parser/keys.py
+log.txt
+project_state.md

@@ -22,6 +22,7 @@ local save_path = std.extVar("save_path");
 local second_lang_fold = std.extVar("second_lang_fold");
 local second_lang_fraction = std.extVar("second_lang_fraction");
 local seed = std.extVar("seed");
+local epochs = std.extVar("epochs");
 local segmenter_dropout = std.extVar("segmenter_dropout");
 local segmenter_hidden_dim = std.extVar("segmenter_hidden_dim");
 local segmenter_type = std.extVar("segmenter_type");
@@ -32,6 +33,7 @@ local use_discriminator = std.extVar("use_discriminator");
 local use_log_crf = std.extVar("use_log_crf");
 local window_size = std.extVar("window_size");
 local window_padding = std.extVar("window_padding");
+local use_amp = std.extVar("use_amp");
 
 {
     "data": {
@@ -73,8 +75,8 @@ local window_padding = std.extVar("window_padding");
     "trainer": {
             "lr": lr,
             "seed": seed,
-            "epochs": 100,
-            "use_amp": false,
+            "epochs": epochs,
+            "use_amp": use_amp,
             "lr_decay": 0.95,
             "patience": 7,
             "project": "rurst",

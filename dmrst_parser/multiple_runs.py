@@ -37,6 +37,9 @@ class MultipleRunnerGeneral:
                  resume_training: bool = False,
                  n_runs: int = 5,
                  save_path: str = 'saves/',
+                 epochs: int = 100,
+                 lr: float = 1e-4,
+                 use_amp: bool = False,
                  ):
         """
         :param corpus: (str)  - 'GUM' or 'RST-DT'
@@ -59,8 +62,19 @@ class MultipleRunnerGeneral:
         self.resume_training = resume_training
         self.n_runs = n_runs
         self.save_path = save_path
+        self.epochs = epochs
+        self.lr = lr
+        self.use_amp = use_amp
 
     def _general_parameters(self):
+        # Auto-set embedding size to match common XLM-R variants if user didn't change default
+        emb_size = self.emb_size
+        name = str(self.transformer_name).lower()
+        if 'xlm-roberta-base' in name and emb_size != 768:
+            emb_size = 768
+        if 'xlm-roberta-large' in name and emb_size != 1024:
+            emb_size = 1024
+
         overrides = {
             'corpus': self.corpus,
             'lang': self.lang,
@@ -68,7 +82,7 @@ class MultipleRunnerGeneral:
             'second_lang_fold': 0,
             'second_lang_fraction': 0,
             'transformer_name': self.transformer_name,  # LM name
-            'emb_size': self.emb_size,  # LM embedding size
+            'emb_size': emb_size,  # LM embedding size (auto-adjusted for common XLM-R variants)
             'freeze_first_n': self.freeze_first_n,  # LM fine-tuning configuration
             'window_size': self.window_size,
             'window_padding': self.window_padding,
@@ -78,9 +92,11 @@ class MultipleRunnerGeneral:
             'dwa_bs': 12,  # Batch size for DWA computation
             'grad_clipping_value': 10.0,
             'combine_batches': 'false',  # [Optional] Combine batches w/smallest trees (for normalization when bs=1)
-            'lr': 0.0001,
+            'lr': self.lr,
             'cuda_device': self.cuda_device,
             'save_path': self.save_path,
+            'epochs': self.epochs,
+            'use_amp': 'true' if self.use_amp else 'false',
         }
 
         if self.corpus == 'RST-DT':
@@ -111,6 +127,14 @@ class MultipleRunnerGeneral:
                 overrides.update({
                     'lr': 0.0005
                 })
+
+        elif self.corpus == 'DE-MIX':
+            # Mixed German corpus: similar scale to GUM; no cross-validation; larger hidden size
+            overrides.update({
+                'batch_size': 1,
+                'cross_validation': 'false',
+                'hidden_size': 1024,
+            })
 
         # Default parameters
         overrides.update({
@@ -167,7 +191,7 @@ class MultipleRunnerGeneral:
         if self.corpus == 'RST-DT':
             return range(self.n_runs)  # For there is no fixed dev in RST-DT, we select validation from the train randomly
 
-        elif self.corpus in ['GUM', 'RuRSTB']:
+        elif self.corpus in ['GUM', 'RuRSTB', 'DE-MIX']:
             return range(40, 40+self.n_runs)  # There is a fixed split, we just change the nn random seed
 
     def train(self):
@@ -177,7 +201,7 @@ class MultipleRunnerGeneral:
                 general_parameters['foldnum'] = run
                 general_parameters['seed'] = 43
 
-            elif self.corpus in ['GUM', 'RuRSTB']:
+            elif self.corpus in ['GUM', 'RuRSTB', 'DE-MIX']:
                 general_parameters['foldnum'] = 0
                 general_parameters['seed'] = run
 
@@ -190,7 +214,7 @@ class MultipleRunnerGeneral:
                     continue
 
             p = subprocess.Popen(
-                ['python', 'dmrst_parser/trainer.py',
+                [sys.executable, '-m', 'dmrst_parser.trainer',
                  'configs/general_config.jsonnet', json.dumps(general_parameters)],
                 stdout=sys.stdout, stderr=sys.stderr
             )
@@ -252,7 +276,7 @@ class MultipleRunnerGeneral:
                     continue
 
             p = subprocess.Popen(
-                ['python', 'dmrst_parser/trainer.py',
+                [sys.executable, '-m', 'dmrst_parser.trainer',
                  'configs/general_config.jsonnet', json.dumps(general_parameters)],
                 stdout=sys.stdout, stderr=sys.stderr
             )

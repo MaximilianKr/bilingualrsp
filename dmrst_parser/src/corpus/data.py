@@ -141,6 +141,8 @@ class Document:
                 common.performMapping(self.tree, relation_set.brazilianSum_labels)
             elif mappingRel == 'germanPcc_labels':
                 common.performMapping(self.tree, relation_set.germanPcc_labels)
+            elif mappingRel == 'germanMixed_labels':
+                common.performMapping(self.tree, relation_set.germanMixed_labels)
             elif mappingRel == 'spanish_labels':
                 common.performMapping(self.tree, relation_set.spanish_labels)
             elif mappingRel == 'rstdt_mapping18':

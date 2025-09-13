@@ -8,3 +8,4 @@ spacy
 numpy==1.26.4
 transformers
 torch
+wandb

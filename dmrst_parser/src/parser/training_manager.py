@@ -265,7 +265,7 @@ class TrainingManager:
             self.model.turn_on_discriminator()
 
         if self.use_amp:
-            scaler = torch.cuda.amp.GradScaler()
+            scaler = torch.amp.GradScaler("cuda")
 
         # self._adjust_lr(epoch)
         self.model.train()
