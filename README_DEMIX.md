@@ -113,6 +113,17 @@ python dmrst_parser/multiple_runs.py \
   --cuda_device 0 train
 ```
   - Inference with the trained run is unchanged; the model will use sentence hints internally if it was trained with them.
+
+### Recommended Segmentation Training (final)
+- Large model with linear segmenter and sentence hints (best on our data):
+```
+python dmrst_parser/multiple_runs.py \
+  --corpus DE-MIX --lang de --model_type default+linear_hints_final \
+  --transformer_name xlm-roberta-large --epochs 15 --n_runs 1 \
+  --freeze_first_n 20 --lr 1e-4 --segmenter_use_sent_boundaries 1 \
+  --cuda_device 0 train
+```
+Then segment and evaluate as shown below.
 - LUKE/MLUKE entity spans (optional):
   - If you switch to a LUKE model (`studio-ousia/mluke-*`), Trainer extracts entity spans with spaCy.
   - For German, set `--lang de` and install spaCy German as above. This can improve performance in some setups but adds compute.
@@ -146,12 +157,12 @@ pred = Predictor('saves/<run_name>', cuda_device=0)
 ```
 
 Segmentation from plain text (utility):
-- Use `utils/segment_texts.py` to turn `.txt` into `.edus.txt` with predicted EDU boundaries.
+- Use `utils/segment_texts.py` to turn `.txt` into `_edus.txt` with predicted EDU boundaries.
 ```
 python utils/segment_texts.py --model_dir saves/<run_name> \
-  --input_dir data/test_input --output_dir data/test_output --cuda_device 0
+  --input_dir data/test_input --output_dir data/test_output --cuda_device 0 [--verbose]
 ```
-Each input file produces `<output_dir>/<name>.edus.txt` with one EDU per line. Add `--dump_breaks` to also write a small JSON with debug info. Output segments are cut at predicted character offsets (no leading spaces).
+Each input file produces `<output_dir>/<name>_edus.txt` with one EDU per line. Add `--dump_breaks` to also write a small JSON with debug info. Output segments are cut at predicted character offsets (no leading spaces). Use `--verbose` to see per-file output; default is quiet with a progress bar.
 
 Segmentation evaluation (token-boundary F1):
 ```
