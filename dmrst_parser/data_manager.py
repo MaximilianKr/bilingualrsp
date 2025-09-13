@@ -16,7 +16,7 @@ from dmrst_parser.src.parser.data import Data
 from dmrst_parser.src.parser.data import RelationTableGUM, RelationTableRSTDT, RelationTableRuRSTB
 
 random.seed(42)
-nltk.download('punkt')
+nltk.download('punkt', quiet=True)
 
 
 class ParserInput:
