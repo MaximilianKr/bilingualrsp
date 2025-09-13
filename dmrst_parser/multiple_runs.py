@@ -40,6 +40,7 @@ class MultipleRunnerGeneral:
                  epochs: int = 100,
                  lr: float = 1e-4,
                  use_amp: bool = False,
+                 segmenter_use_sent_boundaries: bool = False,
                  ):
         """
         :param corpus: (str)  - 'GUM' or 'RST-DT'
@@ -65,6 +66,7 @@ class MultipleRunnerGeneral:
         self.epochs = epochs
         self.lr = lr
         self.use_amp = use_amp
+        self.segmenter_use_sent_boundaries = segmenter_use_sent_boundaries
 
     def _general_parameters(self):
         # Auto-set embedding size to match common XLM-R variants if user didn't change default
@@ -141,6 +143,7 @@ class MultipleRunnerGeneral:
             'segmenter_type': 'linear',
             'segmenter_hidden_dim': overrides['hidden_size'],
             'segmenter_dropout': 0.4,
+            'segmenter_use_sent_boundaries': 'true' if self.segmenter_use_sent_boundaries else 'false',
             'lstm_bidirectional': 'true',
             'if_edu_start_loss': 'true',
             'edu_encoding_kind': 'avg',

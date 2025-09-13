@@ -26,6 +26,7 @@ local epochs = std.extVar("epochs");
 local segmenter_dropout = std.extVar("segmenter_dropout");
 local segmenter_hidden_dim = std.extVar("segmenter_hidden_dim");
 local segmenter_type = std.extVar("segmenter_type");
+local segmenter_use_sent_boundaries = std.extVar("segmenter_use_sent_boundaries");
 local token_bilstm_hidden = std.extVar("token_bilstm_hidden");
 local transformer_name = std.extVar("transformer_name");
 local use_crf = std.extVar("use_crf");
@@ -58,6 +59,7 @@ local use_amp = std.extVar("use_amp");
             "type": segmenter_type,
             "use_crf": use_crf,
             "use_log_crf": use_log_crf,
+            "use_sent_boundaries": segmenter_use_sent_boundaries,
             "hidden_dim": segmenter_hidden_dim,
             "lstm_dropout": 0.2,
             "lstm_num_layers": 1,
