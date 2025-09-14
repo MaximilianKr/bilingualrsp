@@ -114,13 +114,13 @@ python dmrst_parser/multiple_runs.py \
 ```
   - Inference with the trained run is unchanged; the model will use sentence hints internally if it was trained with them.
 
-### Recommended Segmentation Training (final)
-- Large model with linear segmenter and sentence hints (best on our data):
+### Recommended Segmentation Training (reference)
+- Segmentation-focused reference (best on our token-boundary metric): base model with linear segmenter and sentence hints.
 ```
 python dmrst_parser/multiple_runs.py \
-  --corpus DE-MIX --lang de --model_type default+linear_hints_final \
-  --transformer_name xlm-roberta-large --epochs 15 --n_runs 1 \
-  --freeze_first_n 20 --lr 1e-4 --segmenter_use_sent_boundaries 1 \
+  --corpus DE-MIX --lang de --model_type default+base_linear_hints \
+  --transformer_name xlm-roberta-base --epochs 6 --n_runs 1 \
+  --lr 1e-4 --segmenter_use_sent_boundaries 1 \
   --cuda_device 0 train
 ```
 Then segment and evaluate as shown below.
@@ -170,6 +170,15 @@ python utils/eval_segmentation.py --pred_dir data/test_output --gold_dir data/go
 ```
 - Matches files by their base name before the EDU suffix, supporting both `<name>.edus(.txt)` and `<name>_edus(.txt)` in either folder.
 - Compares right-boundary indices over whitespace tokens (ignores the final boundary). This approximates the trainer’s segmentation metric; tokenization differences can affect scores.
+ - To persist results as JSON (for comparability), add `--results_dir results/seg_eval` (auto-named by pred/gold dir and timestamp), or `--results_file` to choose an explicit path. Use `--tag` to include a run label.
+
+## Final Selection (Segmentation Reference)
+
+- Checkpoint used: `saves/de_DE-MIX_default+base_linear_hints_40` (xlm-roberta-base, linear segmenter, sentence hints, 6 epochs).
+- Token-boundary F1 on a 33-doc test slice:
+  - Macro: 0.776, Micro: 0.744
+  - JSON summary saved under `results/seg_eval/de_DE-MIX_default+base_linear_hints_40__vs__gold_test__*.json`.
+- Note: For end-to-end parsing, a large + ToNy configuration trained in short runs performed best; our current work focuses on segmentation, so we use the base+linear+hints model as the reference segmenter.
 
 ## Regression Checks
 
