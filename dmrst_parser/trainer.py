@@ -168,6 +168,11 @@ class Trainer:
             elif self.data_lang == 'de':
                 self._spacy = spacy.load("de_core_news_lg")  # python -m spacy download de_core_news_lg
 
+        # If sentence boundaries are requested for the segmenter, ensure spaCy is loaded for German
+        if self.model_segmenter_use_sent_boundaries and self.data_lang == 'de' and not hasattr(self, '_spacy'):
+            # Requires: python -m spacy download de_core_news_lg
+            self._spacy = spacy.load("de_core_news_lg")
+
         self._set_random_seeds()
         self._load_data()
         self._setup_model()

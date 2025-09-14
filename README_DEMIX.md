@@ -102,9 +102,28 @@ Long sequences and windowing:
 
 ### German optional features
 - Sentence boundaries for the segmenter (optional):
-  - Only used if sentence boundaries are enabled in the segmenter config. Trainer will use spaCy to split sentences.
-  - For German, set `--lang de` and install spaCy German: `python -m spacy download de_core_news_lg`.
-  - Note: enabling sentence boundaries requires toggling the segmenter option in the config; leave it off unless experimenting with segmentation hints.
+  - Enable hints with `--segmenter_use_sent_boundaries 1` when training.
+  - Use with `--lang de` and install spaCy German: `python -m spacy download de_core_news_lg`.
+  - Example (large, short run):
+```
+python dmrst_parser/multiple_runs.py \
+  --corpus DE-MIX --lang de --model_type default \
+  --transformer_name xlm-roberta-large --epochs 8 --n_runs 1 \
+  --freeze_first_n 20 --lr 1e-4 --segmenter_use_sent_boundaries 1 \
+  --cuda_device 0 train
+```
+  - Inference with the trained run is unchanged; the model will use sentence hints internally if it was trained with them.
+
+### Recommended Segmentation Training (reference)
+- Segmentation-focused reference (best on our token-boundary metric): base model with linear segmenter and sentence hints.
+```
+python dmrst_parser/multiple_runs.py \
+  --corpus DE-MIX --lang de --model_type default+base_linear_hints \
+  --transformer_name xlm-roberta-base --epochs 6 --n_runs 1 \
+  --lr 1e-4 --segmenter_use_sent_boundaries 1 \
+  --cuda_device 0 train
+```
+Then segment and evaluate as shown below.
 - LUKE/MLUKE entity spans (optional):
   - If you switch to a LUKE model (`studio-ousia/mluke-*`), Trainer extracts entity spans with spaCy.
   - For German, set `--lang de` and install spaCy German as above. This can improve performance in some setups but adds compute.
@@ -137,6 +156,30 @@ pred = Predictor('saves/<run_name>', cuda_device=0)
 #     logits = pred.model(...)
 ```
 
+Segmentation from plain text (utility):
+- Use `utils/segment_texts.py` to turn `.txt` into `_edus.txt` with predicted EDU boundaries.
+```
+python utils/segment_texts.py --model_dir saves/<run_name> \
+  --input_dir data/test_input --output_dir data/test_output --cuda_device 0 [--verbose]
+```
+Each input file produces `<output_dir>/<name>_edus.txt` with one EDU per line. Add `--dump_breaks` to also write a small JSON with debug info. Output segments are cut at predicted character offsets (no leading spaces). Use `--verbose` to see per-file output; default is quiet with a progress bar.
+
+Segmentation evaluation (token-boundary F1):
+```
+python utils/eval_segmentation.py --pred_dir data/test_output --gold_dir data/gold_test
+```
+- Matches files by their base name before the EDU suffix, supporting both `<name>.edus(.txt)` and `<name>_edus(.txt)` in either folder.
+- Compares right-boundary indices over whitespace tokens (ignores the final boundary). This approximates the trainer’s segmentation metric; tokenization differences can affect scores.
+ - To persist results as JSON (for comparability), add `--results_dir results/seg_eval` (auto-named by pred/gold dir and timestamp), or `--results_file` to choose an explicit path. Use `--tag` to include a run label.
+
+## Final Selection (Segmentation Reference)
+
+- Checkpoint used: `saves/de_DE-MIX_default+base_linear_hints_40` (xlm-roberta-base, linear segmenter, sentence hints, 6 epochs).
+- Token-boundary F1 on a 33-doc test slice:
+  - Macro: 0.776, Micro: 0.744
+  - JSON summary saved under `results/seg_eval/de_DE-MIX_default+base_linear_hints_40__vs__gold_test__*.json`.
+- Note: For end-to-end parsing, a large + ToNy configuration trained in short runs performed best; our current work focuses on segmentation, so we use the base+linear+hints model as the reference segmenter.
+
 ## Regression Checks
 
 - After changes, re-run RuRSTB preparation to ensure nothing breaks existing flows:
@@ -158,6 +201,15 @@ Notes:
 - `--model_type '+tony'` enables the ToNy segmenter (LSTM-CRF), often a strong baseline.
 - Adjust `--transformer_name`/`--emb_size` for a smaller LM (e.g., `xlm-roberta-base`) to reduce compute.
 
+Best-variant per paper (ToNy + E‑BiLSTM):
+- Use `--model_type '+tony+bilstm_edus'` to enable ToNy segmenter and BiLSTM EDU encoder.
+```
+python dmrst_parser/multiple_runs.py \
+  --corpus DE-MIX --lang en --model_type +tony+bilstm_edus \
+  --transformer_name xlm-roberta-large --epochs 8 --n_runs 1 --freeze_first_n 20 --lr 1e-4 \
+  --cuda_device 0 train
+```
+Notes: ToNy works without sentence-boundary hints by default; you can also combine it with `--segmenter_use_sent_boundaries 1` under `--lang de` if experimenting with sentence hints.
 ## Troubleshooting
 - ModuleNotFoundError when launching training: fixed by launching trainer as a module (handled by multiple_runs). Ensure you call multiple_runs.py, not trainer.py directly.
 - RuntimeError LayerNorm shape mismatch: pass matching `--emb_size` for your LM (base=768, large=1024) or rely on auto-selection.

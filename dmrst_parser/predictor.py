@@ -92,6 +92,11 @@ class Predictor:
         if 'if_edu_start_loss' in self.config['model']['segmenter']:
             config['segmenter_if_edu_start_loss'] = str2bool(self.config['model']['segmenter'].get('if_edu_start_loss'))
 
+        # Ensure sentence-boundary hints toggle is respected at inference
+        if 'use_sent_boundaries' in self.config['model']['segmenter']:
+            config['segmenter_use_sent_boundaries'] = str2bool(
+                self.config['model']['segmenter'].get('use_sent_boundaries'))
+
         if 'edu_encoding_kind' in self.config['model']:
             config['edu_encoding_kind'] = self.config['model'].get('edu_encoding_kind')
 
