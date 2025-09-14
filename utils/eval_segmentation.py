@@ -3,6 +3,8 @@ import glob
 import os
 import re
 from pathlib import Path
+import json
+from datetime import datetime
 
 
 def load_boundaries_from_edus_file(path: str):
@@ -47,6 +49,9 @@ def main():
     ap = argparse.ArgumentParser(description='Evaluate segmentation F1 by comparing predicted EDUs to gold EDUs.')
     ap.add_argument('--pred_dir', required=True, help='Directory with predicted files (e.g., <name>.edus.txt or <name>_edus.txt)')
     ap.add_argument('--gold_dir', required=True, help='Directory with gold files (e.g., <name>.edus or <name>_edus)')
+    ap.add_argument('--results_dir', help='If set, writes a JSON summary under this directory (auto-named).')
+    ap.add_argument('--results_file', help='Optional explicit JSON path to write results (overrides --results_dir).')
+    ap.add_argument('--tag', help='Optional tag to include in the saved JSON filename and payload.')
     args = ap.parse_args()
 
     def collect_map(folder):
@@ -114,6 +119,40 @@ def main():
         print('\nSummary:')
         print(f'Macro: P={macro_p:.3f}\tR={macro_r:.3f}\tF1={macro_f:.3f}\tN={len(per_file)}')
         print(f'Micro: P={micro_p:.3f}\tR={micro_r:.3f}\tF1={micro_f:.3f}\tTP={tp_sum}\t|pred|={p_sum}\t|gold|={g_sum}')
+
+        # Optional JSON save
+        if args.results_file or args.results_dir:
+            ts = datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')
+            pred_base = os.path.basename(os.path.normpath(args.pred_dir))
+            gold_base = os.path.basename(os.path.normpath(args.gold_dir))
+            tag = args.tag or pred_base
+
+            payload = {
+                'pred_dir': args.pred_dir,
+                'gold_dir': args.gold_dir,
+                'tag': tag,
+                'timestamp_utc': ts,
+                'macro': {'P': macro_p, 'R': macro_r, 'F1': macro_f, 'N': len(per_file)},
+                'micro': {'P': micro_p, 'R': micro_r, 'F1': micro_f, 'TP': tp_sum, 'pred': p_sum, 'gold': g_sum},
+                'per_file': [
+                    {'name': name, 'P': prec, 'R': rec, 'F1': f1, 'pred': p, 'gold': g, 'TP': tp}
+                    for name, prec, rec, f1, p, g, tp in per_file
+                ],
+                'missing_gold': sorted(missing),
+            }
+
+            if args.results_file:
+                out_path = Path(args.results_file)
+            else:
+                out_dir = Path(args.results_dir)
+                out_dir.mkdir(parents=True, exist_ok=True)
+                fname = f'{tag}__vs__{gold_base}__{ts}.json'
+                out_path = out_dir / fname
+
+            out_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(out_path, 'w', encoding='utf-8') as jf:
+                json.dump(payload, jf, ensure_ascii=False, indent=2)
+            print(f'Wrote JSON summary to: {out_path}')
 
 
 if __name__ == '__main__':
